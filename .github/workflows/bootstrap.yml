@@ -26,14 +26,15 @@ jobs:
         run: python -m pip install pillow
       - name: Assemble IntSense Remote source
         run: |
-          if [ -f Cargo.toml ]; then echo "исходники уже собраны"; exit 0; fi
           bash branding/bootstrap.sh
           git config user.name "IntSense"
           git config user.email "noreply@intsense.ai"
-          git add -A
-          git commit -qm "IntSense Remote source"
-          git push
-      - name: Start IntSense Remote build
+          # -f: в исходном .gitignore есть *png и *svg, а иконки нужны в репозитории
+          git add -A -f .
+          if git diff --cached --quiet; then echo "без изменений"; else git commit -qm "IntSense Remote source"; git push; fi
+      - name: Restart IntSense Remote build
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run flutter-nightly.yml --ref main
+        run: |
+          for id in $(gh run list --workflow flutter-nightly.yml --json databaseId,status -q '.[] | select(.status != "completed") | .databaseId'); do gh run cancel "$id" || true; done
+          gh workflow run flutter-nightly.yml --ref main
