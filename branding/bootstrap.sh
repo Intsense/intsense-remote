@@ -65,6 +65,10 @@ sub $D 's/const BoxDecoration\(color: Color\(0xFF2c8cff\)\)/const BoxDecoration(
 M=flutter/lib/mobile/pages/settings_page.dart
 sub $M "s#'https://rustdesk.com/privacy.html'#'https://intsense.ai'#g; s#'https://rustdesk.com'#'$SRC_URL'#g; s#Text\('rustdesk.com',#Text('intsense.ai',#g"
 
+# 8a. Скрипты сборки macOS: путь к бандлу и подпись DMG
+sub build.py 's/RustDesk\.app/'"$NAME"'.app/g; s/RustDesk Installer/'"$NAME"' Installer/g'
+sub res/osx-dist.sh 's/RustDesk\.app/'"$NAME"'.app/g'
+
 # 8. CI: имя бандла и файлов
 for wf in .github/workflows/flutter-build.yml; do
   sub $wf 's/RustDesk\.app/'"$NAME"'.app/g; s#Contents/MacOS/RustDesk#Contents/MacOS/'"$NAME"'#g'
