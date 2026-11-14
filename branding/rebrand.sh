@@ -29,17 +29,17 @@ sub flutter/macos/Runner/Configs/AppInfo.xcconfig 's/PRODUCT_BUNDLE_IDENTIFIER =
 sub flutter/macos/Runner/Configs/AppInfo.xcconfig 's/PRODUCT_COPYRIGHT = .*/PRODUCT_COPYRIGHT = © 2026 IntSense/'
 
 # 3. iOS
-sub flutter/ios/Runner/Info.plist 's#<string>RustDesk</string>#<string>'"$NAME"'</string>#g'
+sub flutter/ios/Runner/Info.plist 's#<string>RustDesk</string>#<string>'"$DISPLAY"'</string>#g'
 sub flutter/ios/Runner.xcodeproj/project.pbxproj 's/PRODUCT_BUNDLE_IDENTIFIER = com\.carriez\.[A-Za-z0-9_.]+;/PRODUCT_BUNDLE_IDENTIFIER = '"$BUNDLE_ID"';/g'
 
 # 4. Android
 A=flutter/android/app/src/main
-sub $A/AndroidManifest.xml 's/android:label="RustDesk Input"/android:label="'"$NAME"' Input"/; s/android:label="RustDesk"/android:label="'"$NAME"'"/'
-sub $A/res/values/strings.xml 's/RustDesk/'"$NAME"'/g'
+sub $A/AndroidManifest.xml 's/android:label="RustDesk Input"/android:label="'"$DISPLAY"' Input"/; s/android:label="RustDesk"/android:label="'"$DISPLAY"'"/'
+sub $A/res/values/strings.xml 's/RustDesk/'"$DISPLAY"'/g'
 sub $A/res/values/ic_launcher_background.xml 's/#ffffff/#F4F4FA/'
 
 # 5. Windows
-sub flutter/windows/runner/Runner.rc 's/"RustDesk Remote Desktop"/"'"$DISPLAY"'"/; s/VALUE "ProductName", "RustDesk"/VALUE "ProductName", "'"$NAME"'"/'
+sub flutter/windows/runner/Runner.rc 's/"RustDesk Remote Desktop"/"'"$DISPLAY"'"/; s/VALUE "ProductName", "RustDesk"/VALUE "ProductName", "'"$DISPLAY"'"/'
 
 # 6. Фирменный цвет вместо синего RustDesk (лавандовый из знака IntSense)
 sub flutter/lib/common.dart 's/0xFF0071FF/0xFF6F62C8/g; s/0x770071FF/0x776F62C8/g; s/0xAA0071FF/0xAA6F62C8/g; s/0xFF2C8CFF/0xFF7B6FD6/g'
@@ -66,5 +66,11 @@ done
 
 
 # 9. Заголовок окна (Windows/Linux) написан напрямую, без автозамены
-perl -0pi -e 's/child: const Text\(\n(\s*)"RustDesk",/child: const Text(\n$1"IntSense",/' flutter/lib/desktop/widgets/tabbar_widget.dart
+perl -0pi -e 's/child: const Text\(\n(\s*)"RustDesk",/child: const Text(\n$1"IntSense Remote",/' flutter/lib/desktop/widgets/tabbar_widget.dart
+
+# 10. Видимое имя «IntSense Remote» везде; служебное имя IntSense (без пробела) остаётся для путей и служб
+sub src/lang.rs 's/let app_name = crate::get_app_name\(\);/let app_name = "'"$DISPLAY"'".to_string();/'
+sub flutter/lib/common.dart 's/(String getWindowName\(\{WindowType\? overrideType\}\) \{\n  )final name = bind\.mainGetAppNameSync\(\);/$1final name = "'"$DISPLAY"'";/'
+sub flutter/macos/Runner/Info.plist 's#<key>CFBundleName</key>\n\t<string>\$\(PRODUCT_NAME\)</string>#<key>CFBundleName</key>\n\t<string>'"$DISPLAY"'</string>\n\t<key>CFBundleDisplayName</key>\n\t<string>'"$DISPLAY"'</string>#'
+grep -q "\"$DISPLAY\".to_string()" src/lang.rs && grep -q "final name = \"$DISPLAY\";" flutter/lib/common.dart && grep -q "<string>$DISPLAY</string>" flutter/macos/Runner/Info.plist
 echo "rebrand: OK ($NAME, $SERVER)"
