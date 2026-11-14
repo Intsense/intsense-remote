@@ -910,14 +910,20 @@ jobs:
           CREATE_DMG="$(command -v create-dmg)"
           CREATE_DMG="$(readlink -f "$CREATE_DMG")"
           sed -i -e 's/MAXIMUM_UNMOUNTING_ATTEMPTS=3/MAXIMUM_UNMOUNTING_ATTEMPTS=7/' "$CREATE_DMG"
-          create-dmg --icon "IntSense.app" 200 190 --hide-extension "IntSense.app" --window-size 800 400 --app-drop-link 600 185 rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.dmg ./flutter/build/macos/Build/Products/Release/IntSense.app
+          APP=./flutter/build/macos/Build/Products/Release/IntSense.app
+          for l in en ru Base; do mkdir -p "$APP/Contents/Resources/$l.lproj"; printf '"CFBundleDisplayName" = "IntSense Remote";\n"CFBundleName" = "IntSense Remote";\n' > "$APP/Contents/Resources/$l.lproj/InfoPlist.strings"; done
+          /usr/libexec/PlistBuddy -c "Delete :LSHasLocalizedDisplayName" "$APP/Contents/Info.plist" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :LSHasLocalizedDisplayName bool true" "$APP/Contents/Info.plist"
+          codesign --force --deep --sign - "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          create-dmg --volname "IntSense Remote" --icon "IntSense.app" 200 190 --hide-extension "IntSense.app" --window-size 800 400 --app-drop-link 600 185 IntSense-Remote-${{ env.VERSION }}-${{ matrix.job.arch }}.dmg "$APP"
 
       - name: Upload unsigned macOS app
         if: env.UPLOAD_ARTIFACT == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: rustdesk-unsigned-macos-${{ matrix.job.arch }}
-          path: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.dmg # can not upload the directory directly or tar.gz, which destroy the link structure, causing the codesign failed
+          path: IntSense-Remote-${{ env.VERSION }}-${{ matrix.job.arch }}.dmg # can not upload the directory directly or tar.gz, which destroy the link structure, causing the codesign failed
 
       - name: Codesign app and create signed dmg
         if: env.MACOS_P12_BASE64 != null && env.UPLOAD_ARTIFACT == 'true'
@@ -943,10 +949,10 @@ jobs:
               exit 1
             fi
           fi
-          create-dmg --icon "IntSense.app" 200 190 --hide-extension "IntSense.app" --window-size 800 400 --app-drop-link 600 185 rustdesk-${{ env.VERSION }}.dmg ./flutter/build/macos/Build/Products/Release/IntSense.app
-          codesign --force --options runtime -s ${{ secrets.MACOS_CODESIGN_IDENTITY }} --deep --strict rustdesk-${{ env.VERSION }}.dmg -vvv
-          # notarize the rustdesk-${{ env.VERSION }}.dmg
-          rcodesign notary-submit --api-key-path ${{ github.workspace }}/rustdesk.json  --staple rustdesk-${{ env.VERSION }}.dmg
+          create-dmg --icon "IntSense.app" 200 190 --hide-extension "IntSense.app" --window-size 800 400 --app-drop-link 600 185 IntSense-Remote-${{ env.VERSION }}.dmg ./flutter/build/macos/Build/Products/Release/IntSense.app
+          codesign --force --options runtime -s ${{ secrets.MACOS_CODESIGN_IDENTITY }} --deep --strict IntSense-Remote-${{ env.VERSION }}.dmg -vvv
+          # notarize the IntSense-Remote-${{ env.VERSION }}.dmg
+          rcodesign notary-submit --api-key-path ${{ github.workspace }}/rustdesk.json  --staple IntSense-Remote-${{ env.VERSION }}.dmg
 
       - name: Rename rustdesk
         if: env.UPLOAD_ARTIFACT == 'true'
@@ -955,17 +961,17 @@ jobs:
           VERSION: ${{ env.VERSION }}
           ARCH: ${{ matrix.job.arch }}
         run: |
-          if [ -f "rustdesk-${VERSION}.dmg" ]; then
-              mv "rustdesk-${VERSION}.dmg" "rustdesk-${VERSION}-${ARCH}.dmg"
+          if [ -f "IntSense-Remote-${VERSION}.dmg" ]; then
+              mv "IntSense-Remote-${VERSION}.dmg" "IntSense-Remote-${VERSION}-${ARCH}.dmg"
           fi
-          test -f "rustdesk-${VERSION}-${ARCH}.dmg"
+          test -f "IntSense-Remote-${VERSION}-${ARCH}.dmg"
 
       - name: Upload signed macOS DMG
         if: env.UPLOAD_ARTIFACT == 'true' && env.PUBLISH_UPDATE_METADATA == 'true' && env.MACOS_P12_BASE64 != null
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: macos-${{ matrix.job.arch }}-dmg
-          path: ./rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.dmg
+          path: ./IntSense-Remote-${{ env.VERSION }}-${{ matrix.job.arch }}.dmg
           if-no-files-found: error
 
       - name: Publish DMG package
@@ -975,7 +981,7 @@ jobs:
           prerelease: true
           tag_name: ${{ env.TAG_NAME }}
           files: |
-            rustdesk*-${{ matrix.job.arch }}.dmg
+            IntSense-Remote*-${{ matrix.job.arch }}.dmg
 
   build-rustdesk-android:
     needs: [generate-bridge]
