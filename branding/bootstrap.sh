@@ -535,7 +535,7 @@ python3 "$WORK/b/make_icons.py" "$WORK/b/logo.png" "$WORK/src" > /dev/null
 rm -f "$WORK/b/preview-"*.png
 cp "$WORK/b/rebrand.sh" "$WORK/b/make_icons.py" "$WORK/b/logo.png" branding/
 cp "$WORK/b/README.md" README.md
-rm -rf .github   # workflow-файлы живут только в самом репозитории
+rm -rf .github/workflows .github/FUNDING.yml .github/ISSUE_TEMPLATE   # workflow-файлы живут в самом репозитории; патчи и скрипты нужны сборке
 
 cd "$REPO"
 cp -a "$WORK/src/." ./
